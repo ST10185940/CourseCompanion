@@ -1,9 +1,6 @@
 # CourseCompanion
 
 
-# PROG6212_POE
-Console Application in C#
-
 
 REQUIREMENTS:
 
