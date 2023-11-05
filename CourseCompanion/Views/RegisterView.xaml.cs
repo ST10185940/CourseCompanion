@@ -1,20 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using CourseCompanion.ViewModels;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using CourseCompanion.ViewModels;
-using CourseCompanion.Views;
 
 namespace CourseCompanion.Views
 {
@@ -27,14 +12,18 @@ namespace CourseCompanion.Views
         {
             InitializeComponent();
             RegisterViewModel view = new RegisterViewModel();
-            this.DataContext = view;
-            var viewModel = (RegisterViewModel)DataContext;
+            DataContext = view;
 
-            if (viewModel.RegistrationSuccess)
+            view.PropertyChanged += (sender, e) =>
             {
-                HomeView home = new HomeView();
-                MainFrame.NavigationService.Navigate(home);
-            }           
+                if (e.PropertyName == "RegistrationSuccess" && view.RegistrationSuccess)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        MainFrame.NavigationService.Navigate(new HomeView());
+                    });
+                }
+            };
         }
     }
 }

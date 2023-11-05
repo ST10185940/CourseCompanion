@@ -1,19 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using CourseCompanion.ViewModels;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using CourseCompanion.ViewModels;
-using CourseCompanion.Views;
 
 namespace CourseCompanion.Views
 {
@@ -26,14 +13,18 @@ namespace CourseCompanion.Views
         {
             InitializeComponent();
             LogInViewModel viewModel = new LogInViewModel();
-            this.DataContext = viewModel;
-            var viewdata = (LogInViewModel)DataContext;
+            DataContext = viewModel;
 
-            if (viewdata.loginSuccess)
+            viewModel.PropertyChanged += (sender, e) =>
             {
-                HomeView home = new HomeView();
-                MainFrame.NavigationService.Navigate(home);
-            }
+                if (e.PropertyName == "LoginSuccess" && viewModel.LoginSuccess)
+                {
+                    Dispatcher.Invoke(() =>
+                    {                
+                        MainFrame.NavigationService.Navigate( new HomeView());
+                    });
+                }
+            };
 
         }
     }

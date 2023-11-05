@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using CourseCompanion.DataAccess;
+﻿using CourseCompanion.DataAccess;
 using CourseCompanion.ViewModels;
 using SimpleInjector;
 using SimpleInjector.Lifestyles;
+using System.Windows;
 
 namespace CourseCompanion
 {

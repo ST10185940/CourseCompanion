@@ -12,10 +12,10 @@
 
         <Image
             Height="60"
-            Margin="0,-100,0,0"
+            Margin="20,156,35,218"
             Source="/Images/Logo.png" />
         <Label
-            Margin="350,250,340,150"
+            Margin="336,250,354,150"
             Content="By ST10185940"
             FontSize="14"
             FontStyle="Italic"
@@ -23,7 +23,7 @@
         <Button
             Width="100"
             Height="40"
-            Margin="330,312,345,82"
+            Margin="325,300,375,94"
             Click="Start"
             Content="Start"
             Foreground="White">

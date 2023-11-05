@@ -1,33 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using CourseCompanion.Commands;
+﻿using CourseCompanion.Commands;
 using CourseCompanion.DataAccess;
 using CourseCompanion.Models;
-using CourseCompanion.Views;
 using Microsoft.EntityFrameworkCore;
-
+using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 namespace CourseCompanion.ViewModels
 {
-    public class RegisterViewModel
+    public class RegisterViewModel : INotifyPropertyChanged
     {
-        private string Username_in { get; set; }
-        private string Password_in { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private bool registrationSuccess;
+        public bool RegistrationSuccess
+        {
+            get { return registrationSuccess; }
+            set
+            {
+                if (value != registrationSuccess)
+                {
+                    registrationSuccess = value;
+                    OnPropertyChanged(nameof(RegistrationSuccess));
+                }
+            }
+        }
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public string Username_in { get; set; }
+        public string Password_in { get; set; }
         public string result { get; set; }
 
-        public UserID_Dependency shared { get; set; }
+        public static UserID_Dependency shared = new UserID_Dependency();   
 
-        public RelayCommand registerUser { get; set; }
+        public ICommand registerUser { get; set; }
 
-        public bool RegistrationSuccess { get; private set; }
 
-        public RegisterViewModel() {
+        public RegisterViewModel()
+        {
             registerUser = new RelayCommand(Register, CanRegister);
         }
 
@@ -43,45 +60,64 @@ namespace CourseCompanion.ViewModels
 
         private async Task Register()
         {
-            if (!string.IsNullOrEmpty(Username_in) && !string.IsNullOrEmpty(Password_in))
+            try
             {
-                try
+                if (!string.IsNullOrWhiteSpace(Username_in) || !string.IsNullOrEmpty(Password_in))
                 {
-                    using (var context = new AppData())
+
+                    try
+                    { 
+                       await Task.Run(async () => { 
+                        using (var context = new AppData())
+                        {
+                            try
+                            {
+                                var existingUser = context.user.FirstOrDefault(x => x.username == Username_in);
+
+                                if (existingUser != null)
+                                {
+                                    Application.Current.Dispatcher.Invoke(() => {result = "That username has been taken , use another!";}); 
+                                }
+                                else
+                                {
+                                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword(Password_in);
+                                    var currentUser = new user { username = Username_in, password = hashedPassword };
+                                    await context.user.AddAsync(currentUser);
+                                    await context.SaveChangesAsync();
+                                 
+                                    int userId = context.user
+                                        .Where(u => u.username == Username_in)
+                                        .Select(u => u.user_id)
+                                        .FirstOrDefault();
+                                    shared.ID = userId;
+
+                                       Application.Current.Dispatcher.Invoke( () =>
+                                       {
+                                        result = $"{currentUser.username} your account has been created";
+                                        RegistrationSuccess = true;
+                                       });
+                                       
+                                }
+                            }catch (Exception) { result = "connection error , try again "; }finally { await context.Database.CloseConnectionAsync(); await context.DisposeAsync(); }
+                          
+                         } 
+                        });
+                    }
+                    catch (Exception ex)
                     {
-                        var existingUser = context.user.FirstOrDefault(x => x.username == Username_in);
-
-                        if (existingUser != null)
-                        {
-                            result = "That username has been taken , use another!";
-                        }
-                        else
-                        {
-                            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(Password_in);
-                            var currentUser = new user { username = Username_in, password = hashedPassword };
-                            context.user.Add(currentUser);
-                            context.SaveChanges();
-                            result = $"{currentUser.username} your account has been created";
-                            RegistrationSuccess = true;
-
-                            int userId = context.user
-                                .Where(u => u.username == Username_in)
-                                .Select(u => u.user_id)
-                                .FirstOrDefault();
-                            shared.ID = userId;
-
-                        }
+                        Application.Current.Dispatcher.Invoke(() =>{ result = "registration failed:" + ex.Message; });
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    result = "registration failed:" + ex.Message;
+                    Application.Current.Dispatcher.Invoke(() => { result = "Please fill in all fields ,to proceed"; }); 
                 }
-            }
-            else
+            }catch (Exception ex)
             {
-                result = "Please fill in all fields ,to proceed";
+                Application.Current.Dispatcher.Invoke(() => { result = "registration failed:" + ex.Message; });
+                
             }
-        }  
+        }
+
     }
 }

@@ -1,25 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CourseCompanion.Models;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using CourseCompanion.Models;
+using System;
 
 namespace CourseCompanion.DataAccess
 {
     public class AppData : DbContext
     {
-        public DbSet<user> user {get;set;}
+        public DbSet<user> user { get; set; }
 
-        public DbSet<module> module { get;set;}
+        public DbSet<module> module { get; set; }
 
-        public DbSet<semester> semester { get;set;}
+        public DbSet<semester> semester { get; set; }
+
+        public string connectionString = "server=localhost;user=root;database=course_companion;port=3306;password=;";
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseMySql("Server=localhost;Port=3306;Database=course_companion;User=root;Password=;", new MySqlServerVersion(new Version(8, 0, 28)));
+            optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 31)));
         }
     }
 }

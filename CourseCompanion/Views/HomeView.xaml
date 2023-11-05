@@ -131,7 +131,7 @@
             Margin="581,411,6,9"
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
-            Content="{Binding result}"
+            Content="{Binding result, Mode=TwoWay}"
             FontSize="16"
             Foreground="Black" />
     </Grid>

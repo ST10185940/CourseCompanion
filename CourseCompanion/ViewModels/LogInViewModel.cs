@@ -1,35 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using System.Windows.Shapes;
-using CourseCompanion.Commands;
+﻿using CourseCompanion.Commands;
 using CourseCompanion.DataAccess;
 using CourseCompanion.Models;
-using CourseCompanion.Views;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 namespace CourseCompanion.ViewModels
 {
-    public class LogInViewModel
+    public class LogInViewModel : INotifyPropertyChanged
     {
 
-        private string Username_in { get; set; }
-        private string Password_in { get; set; }
-        private string result { get; set; }
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        public RelayCommand loginUser { get; set; }
+        private bool loginSuccess;
 
-        public bool loginSuccess { get; private set; }
+        public bool LoginSuccess
+        {
+            get { return loginSuccess; }
+            set
+            {
+                if (value != loginSuccess)
+                {
+                    loginSuccess = value;
+                    OnPropertyChanged(nameof(LoginSuccess));
+                }
+            }
+        }
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
-        public UserID_Dependency shared { get; set; }
+        public string? Username_in { get; set; }
+        public string? Password_in { get; set; }
+        public string? result { get; set; }
+        public ICommand loginUser { get; set; }
 
-        public LogInViewModel() {
+        public static UserID_Dependency shared = new UserID_Dependency();
 
+        public LogInViewModel()
+        {
             loginUser = new RelayCommand(Login, CanLogin);
         }
 
@@ -45,41 +61,72 @@ namespace CourseCompanion.ViewModels
 
         private async Task Login()
         {
-            if (!string.IsNullOrEmpty(Username_in) && !string.IsNullOrEmpty(Password_in))
+            try
             {
-
-                try
+                if (!string.IsNullOrEmpty(Username_in) && !string.IsNullOrEmpty(Password_in))
                 {
-                    using (var context = new AppData())
-                    {
-                       
-                        var user = await (context.user.FirstOrDefaultAsync(u => u.username == Username_in));
-                        if (user != null && BCrypt.Net.BCrypt.EnhancedVerify(Password_in, user.password))
+                    await Task.Run(async () => { 
+                                       
+                        using (var context = new AppData())
                         {
-                            result = "Login Successful";
-                            loginSuccess = true;
+                            try
+                            {
+                                var user = await (context.user.FirstOrDefaultAsync(u => u.username == Username_in));
+                                if (user != null && BCrypt.Net.BCrypt.EnhancedVerify(Password_in, user.password))
+                                {
+                              
+                                    int userId = context.user
+                                        .Where(u => u.username == Username_in)
+                                        .Select(u => u.user_id)
+                                        .FirstOrDefault();
+                                    shared.ID = userId;
 
-                            int userId = context.user
-                                .Where(u => u.username == Username_in)
-                                .Select(u => u.user_id)
-                                .FirstOrDefault();
-                            shared.ID = userId;
+                                    Application.Current.Dispatcher.Invoke(() =>
+                                    {
+                                        result = "Login Successful";
+                                        loginSuccess = true;
+                                    });
+                                }
+                                else
+                                {
+                                    Application.Current.Dispatcher.Invoke(() =>
+                                    {
+                                        result = "Log-In failed.  please re-enter credentials \n or register if you do not have an account; ";
+                                    });
+     
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    result = "login failed " + e.Message;
+                                }); 
+                            
+                            }
+                            finally
+                            {
+                                context.Database.CloseConnection();
+                                await context.DisposeAsync();
+                            }
                         }
-                        else
-                        {
-                            result = "Log-In failed.  please re-enter credentials ";
-                        }
-                    }
-
+                        });
                 }
-                catch (Exception e)
+                else
                 {
-                    result = "login failed " + e.Message;
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        result = "Please enter all credentials";
+                    }); 
                 }
             }
-            else
+            catch (Exception ex)
             {
-                result = "Please enter all credentials";
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    result = "login failed:" + ex.Message;
+
+                });
             }
         }
     }

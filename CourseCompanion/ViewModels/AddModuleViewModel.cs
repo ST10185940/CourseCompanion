@@ -1,21 +1,14 @@
 ﻿using CourseCompanion.Commands;
 using CourseCompanion.DataAccess;
 using CourseCompanion.Models;
-using CourseCompanion.Views;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics.Eventing.Reader;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
 namespace CourseCompanion.ViewModels
 {
-    public class AddModuleViewModel 
+    public class AddModuleViewModel
     {
         public ICommand AddModuleCommand { get; set; }
         public string Name_in { get; set; }
@@ -24,7 +17,6 @@ namespace CourseCompanion.ViewModels
         public string ClassHrsPerWeek_in { get; set; }
         public string SemesterWeeks_in { get; set; }
         public string Semester_in { get; set; }
-        public string ModuleSelfStudyHours { get; set; }
 
         public string result;
 
@@ -33,7 +25,16 @@ namespace CourseCompanion.ViewModels
 
         public AddModuleViewModel()
         {
-            AddModuleCommand = new RelayCommand(AddModule,CanAddModule);
+            AddModuleCommand = new RelayCommand(AddModule, CanAddModule);
+
+            if (LogInViewModel.shared != null && LogInViewModel.shared.ID != 0)
+            {
+                shared = LogInViewModel.shared;
+            }
+            else if (RegisterViewModel.shared != null && RegisterViewModel.shared.ID != 0)
+            {
+                shared = RegisterViewModel.shared;
+            }
         }
 
         private async void AddModule(object obj)
@@ -48,7 +49,7 @@ namespace CourseCompanion.ViewModels
 
         private async Task AddModule()
         {
-      
+
             if (!string.IsNullOrWhiteSpace(Name_in) && !String.IsNullOrWhiteSpace(Code_in))
             {
                 if (int.TryParse(Credits_in, out int Credits1))
@@ -60,29 +61,35 @@ namespace CourseCompanion.ViewModels
                             if (int.TryParse(Semester_in, out int Semester1))
                             {
                                 double self_hrs = ((Credits1 * 10) / SemesterWeeks1) - ClassHrsPerWeek1;
-                                try
+                                await Task.Run(async () =>
                                 {
-                                    using (var context = new AppData())
+                                    try
                                     {
-                                        var newModule = new module { name = Name_in, code = Code_in, credits = Credits1, weekly_hrs = ClassHrsPerWeek1, num_weeks = SemesterWeeks1, selfstudy_hrs = self_hrs, hrs_left = self_hrs, user_id = shared.ID, semester = Semester1 };
-                                        context.SaveChanges();
-                                        result = $" module: {newModule.name} has been created";
-                                        context.Dispose();
-                                      
+                                        using (var context = new AppData())
+                                        {
+                                            var newModule = new module { name = Name_in, code = Code_in, credits = Credits1, weekly_hrs = ClassHrsPerWeek1, num_weeks = SemesterWeeks1, selfstudy_hrs = self_hrs, hrs_left = self_hrs, user_id = shared.ID, semester = Semester1 };
+                                            await context.SaveChangesAsync();
+                                            result = $" module: {newModule.name} has been created";
+                                            await context.DisposeAsync();
+
+                                            Application.Current.Dispatcher.Invoke(() => { result = $" module: {newModule.name} has been created"; });
+
+                                        }
                                     }
-
-                                }
-                                catch (Exception) { result = "could not add module"; } 
+                                    catch (Exception) {
+                                        Application.Current.Dispatcher.Invoke(() => { result = "module already exists"; });
+                                    }
+                                });
                             }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                result = "Enter all module details";
-            }
-        }
+                            else { Application.Current.Dispatcher.Invoke(() => { result = "semester should be a whole number e.g 1"; }); }
 
+                        } else { Application.Current.Dispatcher.Invoke(() => { result = "semester weeks should be a whole number e.g 12"; }); }
+
+                    }else { Application.Current.Dispatcher.Invoke(() => { result = "class hrs should be a number e.g 5 or 3.5 "; }); }
+                }
+                else { Application.Current.Dispatcher.Invoke(() => { result = "credits should be a whole number "; }); }
+            }
+            else { Application.Current.Dispatcher.Invoke(() => { result = "Enter all module details"; }); }
+        }
     }
 }
